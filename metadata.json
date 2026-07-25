@@ -1,0 +1,6 @@
+{
+  "name": "DODO DESIGN | دودو ديزاين",
+  "description": "High-fashion luxury Arabic and English couture ecommerce storefront and administrative management dashboard for DODO DESIGN.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-serif-ar {
+    font-family: 'Amiri', serif;
+  }
+  .font-serif-en {
+    font-family: 'Cinzel', 'Playfair Display', serif;
+  }
+  .font-sans-ar {
+    font-family: 'Cairo', sans-serif;
+  }
+  .font-sans-en {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #fceabb 0%, #d4af37 50%, #aa771c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .bg-gold-gradient {
+    background: linear-gradient(135deg, #fceabb 0%, #d4af37 50%, #aa771c 100%);
+  }
+  .border-gold-glow {
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.1);
+  }
+}
+
+/* Custom Gold & Obsidian Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0b0d;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2822;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Luxury Glow Animations */
+@keyframes goldPulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.animate-gold-pulse {
+  animation: goldPulse 3s infinite ease-in-out;
+}
