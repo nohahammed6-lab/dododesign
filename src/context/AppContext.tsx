@@ -55,6 +55,7 @@ interface AppContextType {
   orders: Order[];
   addOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  deleteOrder: (orderId: string) => void;
 
   customers: Customer[];
 
@@ -551,6 +552,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const deleteOrder = async (orderId: string) => {
+    try {
+      await deleteDoc(doc(db, 'orders', orderId));
+      showToast(lang === 'ar' ? 'تم حذف الطلب بنجاح' : 'Order deleted successfully');
+    } catch (e) {
+      console.error('Error deleting order from Firestore:', e);
+    }
+  };
+
   // Cart Logic
   const addToCart = (product: Product, selectedColor: ProductColor, selectedSize: string, quantity = 1, openCart = false) => {
     const cartItemId = `${product.id}-${selectedColor.hex}-${selectedSize}`;
@@ -645,6 +655,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         orders,
         addOrder,
         updateOrderStatus,
+        deleteOrder,
 
         customers,
 

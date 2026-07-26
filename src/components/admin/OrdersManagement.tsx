@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, Eye, Filter, CheckCircle, Truck, Clock, XCircle } from 'lucide-react';
+import { Search, Eye, Filter, CheckCircle, Truck, Clock, XCircle, Trash2 } from 'lucide-react';
 import { OrderStatus, Order } from '../../types';
 
 export const OrdersManagement: React.FC = () => {
-  const { lang, orders, updateOrderStatus, formatPrice } = useApp();
+  const { lang, orders, updateOrderStatus, deleteOrder, formatPrice } = useApp();
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Selected Order for Modal View
+  // Selected Order for Modal View & Delete Confirmation
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+
+  const handleDelete = async (orderId: string) => {
+    await deleteOrder(orderId);
+    setDeletingOrderId(null);
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder(null);
+    }
+  };
 
   const filteredOrders = orders.filter((o) => {
     const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
@@ -141,13 +150,22 @@ export const OrdersManagement: React.FC = () => {
                     </select>
                   </td>
                   <td className="py-3.5 px-3 text-center">
-                    <button
-                      onClick={() => setSelectedOrder(ord)}
-                      className="p-1.5 bg-[#1d1b22] text-[#d4af37] hover:bg-[#d4af37] hover:text-black rounded transition"
-                      title="View Details"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedOrder(ord)}
+                        className="p-1.5 bg-[#1d1b22] text-[#d4af37] hover:bg-[#d4af37] hover:text-black rounded transition"
+                        title={lang === 'ar' ? 'معاينة التفاصيل' : 'View Details'}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeletingOrderId(ord.id)}
+                        className="p-1.5 bg-[#2a1718] text-[#f28888] hover:bg-[#e03e3e] hover:text-white border border-[#522020] rounded transition"
+                        title={lang === 'ar' ? 'حذف الطلب' : 'Delete Order'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -155,6 +173,47 @@ export const OrdersManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Delete Order Confirmation Modal */}
+      {deletingOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-md bg-[#121016] border border-[#3d2222] rounded-2xl shadow-2xl p-6 text-[#f2efe9] space-y-4">
+            <div className="flex items-center gap-3 text-[#f28888]">
+              <div className="p-2.5 bg-[#331617] rounded-xl border border-[#5c2425]">
+                <Trash2 className="w-6 h-6 text-[#e03e3e]" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base font-serif-ar text-[#f0e8d8]">
+                  {lang === 'ar' ? 'حذف الطلب نهائياً' : 'Delete Order Permanently'}
+                </h3>
+                <p className="text-xs text-[#a09684] mt-0.5 font-mono">{deletingOrderId}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#c2b8a5] leading-relaxed">
+              {lang === 'ar'
+                ? 'هل أنت متأكد من رغبتك في حذف هذا الطلب بشكل نهائي من قاعدة البيانات؟ لا يمكن التراجع عن هذا الإجراء.'
+                : 'Are you sure you want to permanently delete this order? This action cannot be undone.'}
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setDeletingOrderId(null)}
+                className="px-4 py-2 bg-[#1a1820] text-[#a09684] hover:text-white border border-[#2e2922] rounded-xl text-xs font-semibold"
+              >
+                {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={() => handleDelete(deletingOrderId)}
+                className="px-5 py-2 bg-[#e03e3e] hover:bg-[#c93232] text-white rounded-xl text-xs font-bold transition shadow-lg cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Order Detail Modal */}
       {selectedOrder && (
@@ -193,12 +252,21 @@ export const OrdersManagement: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="w-full py-2.5 bg-[#26231c] text-[#d4af37] border border-[#3d372b] rounded font-semibold text-xs"
-            >
-              {lang === 'ar' ? 'إغلاق المعاينة' : 'Close View'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingOrderId(selectedOrder.id)}
+                className="px-4 py-2.5 bg-[#2b1718] text-[#f28888] hover:bg-[#e03e3e] hover:text-white border border-[#522020] rounded font-semibold text-xs transition flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === 'ar' ? 'حذف الطلب' : 'Delete Order'}</span>
+              </button>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="flex-1 py-2.5 bg-[#26231c] text-[#d4af37] border border-[#3d372b] rounded font-semibold text-xs"
+              >
+                {lang === 'ar' ? 'إغلاق المعاينة' : 'Close View'}
+              </button>
+            </div>
           </div>
         </div>
       )}

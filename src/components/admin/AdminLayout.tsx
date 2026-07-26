@@ -5,7 +5,7 @@ import { ProductManagement } from './ProductManagement';
 import { OrdersManagement } from './OrdersManagement';
 import { CustomerManagement } from './CustomerManagement';
 import { ReviewsManagement } from './ReviewsManagement';
-import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code, Lock, Key, LogOut } from 'lucide-react';
 import { AdminTab } from '../../types';
 
 export const AdminLayout: React.FC = () => {
@@ -13,6 +13,98 @@ export const AdminLayout: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [copiedData, setCopiedData] = useState(false);
+
+  // Password Protection State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('dodo_admin_auth') === 'true';
+  });
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput.trim() === 'dododesign123') {
+      sessionStorage.setItem('dodo_admin_auth', 'true');
+      setIsAuthenticated(true);
+      setAuthError('');
+      showToast(lang === 'ar' ? 'تم تسجيل الدخول بنجاح إلى لوحة التحكم!' : 'Authenticated successfully!');
+    } else {
+      setAuthError(
+        lang === 'ar'
+          ? 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.'
+          : 'Incorrect password, please try again.'
+      );
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('dodo_admin_auth');
+    setIsAuthenticated(false);
+    setPasswordInput('');
+    showToast(lang === 'ar' ? 'تم قفل لوحة التحكم بنجاح' : 'Admin panel locked');
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#08080a] text-[#f2efe9] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#111015] border border-[#382f21] rounded-2xl p-8 shadow-2xl space-y-6 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa771c]"></div>
+
+          <div className="w-16 h-16 mx-auto bg-[#1c1822] border border-[#d4af37]/40 rounded-2xl flex items-center justify-center text-[#d4af37] shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-serif-ar font-bold text-gold-gradient">
+              {lang === 'ar' ? 'لوحة تحكم أزياء DODO DESIGN' : 'DODO DESIGN Admin Portal'}
+            </h2>
+            <p className="text-xs text-[#a39783] mt-2 leading-relaxed">
+              {lang === 'ar'
+                ? 'منطقة محمية - يرجى إدخال كلمة المرور الخاصة بالإدارة للوصول إلى التحكم'
+                : 'Restricted area - Please enter password to manage store products and orders'}
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value);
+                  setAuthError('');
+                }}
+                placeholder={lang === 'ar' ? 'أدخل كلمة المرور...' : 'Enter password...'}
+                className="w-full bg-[#18161d] border border-[#3b3224] focus:border-[#d4af37] text-center text-sm py-3 px-4 text-[#f0e8d8] rounded-xl outline-none transition font-mono tracking-widest placeholder:font-sans placeholder:tracking-normal"
+                autoFocus
+              />
+              {authError && (
+                <p className="text-xs text-[#f28888] mt-2 font-medium">{authError}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa771c] text-black font-bold text-xs rounded-xl shadow-lg hover:brightness-110 transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Key className="w-4 h-4 text-black" />
+              <span>{lang === 'ar' ? 'دخول لوحة التحكم' : 'Unlock Dashboard'}</span>
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-[#23201a]">
+            <button
+              onClick={() => setViewMode('store')}
+              className="text-xs text-[#a09684] hover:text-[#d4af37] transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>{lang === 'ar' ? 'العودة للمتجر الرئيسي' : 'Return to Store'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const adminUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}${window.location.pathname}#admin`
@@ -130,6 +222,16 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
             >
               <Globe className="w-3.5 h-3.5 text-[#d4af37]" />
               <span>{lang === 'ar' ? 'English' : 'عربي'}</span>
+            </button>
+
+            {/* Lock Admin Panel Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#261819] border border-[#522020] text-[#f28888] hover:bg-[#e03e3e] hover:text-white rounded text-xs transition font-semibold cursor-pointer"
+              title={lang === 'ar' ? 'قفل لوحة التحكم' : 'Lock Admin Panel'}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>{lang === 'ar' ? 'قفل اللوحة' : 'Lock Panel'}</span>
             </button>
 
             <button
