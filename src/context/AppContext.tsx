@@ -20,7 +20,8 @@ import {
   doc,
   setDoc,
   deleteDoc,
-  getDocs
+  getDocs,
+  getDoc
 } from 'firebase/firestore';
 
 interface AppContextType {
@@ -118,14 +119,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 1. Sync Products
     const unsubProducts = onSnapshot(
       collection(db, 'products'),
-      (snapshot) => {
+      async (snapshot) => {
         if (snapshot.empty) {
-          const isReset = localStorage.getItem('dodo_store_reset');
-          if (isReset !== 'true') {
-            INITIAL_PRODUCTS.forEach((p) => {
-              setDoc(doc(db, 'products', p.id), p);
-            });
-          } else {
+          try {
+            const stateSnap = await getDoc(doc(db, 'settings', 'store_state'));
+            if (!stateSnap.exists()) {
+              // Brand new database initial seed
+              await setDoc(doc(db, 'settings', 'store_state'), { isInitialized: true, isCleared: false });
+              for (const p of INITIAL_PRODUCTS) {
+                await setDoc(doc(db, 'products', p.id), p);
+              }
+            } else {
+              setProducts([]);
+            }
+          } catch (e) {
+            console.error('Error checking store state:', e);
             setProducts([]);
           }
         } else {
@@ -142,14 +150,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 2. Sync Orders
     const unsubOrders = onSnapshot(
       collection(db, 'orders'),
-      (snapshot) => {
+      async (snapshot) => {
         if (snapshot.empty) {
-          const isReset = localStorage.getItem('dodo_store_reset');
-          if (isReset !== 'true') {
-            INITIAL_ORDERS.forEach((o) => {
-              setDoc(doc(db, 'orders', o.id), o);
-            });
-          } else {
+          try {
+            const stateSnap = await getDoc(doc(db, 'settings', 'store_state'));
+            if (!stateSnap.exists()) {
+              for (const o of INITIAL_ORDERS) {
+                await setDoc(doc(db, 'orders', o.id), o);
+              }
+            } else {
+              setOrders([]);
+            }
+          } catch (e) {
+            console.error('Error checking store state for orders:', e);
             setOrders([]);
           }
         } else {
@@ -167,14 +180,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 3. Sync Customers
     const unsubCustomers = onSnapshot(
       collection(db, 'customers'),
-      (snapshot) => {
+      async (snapshot) => {
         if (snapshot.empty) {
-          const isReset = localStorage.getItem('dodo_store_reset');
-          if (isReset !== 'true') {
-            INITIAL_CUSTOMERS.forEach((c) => {
-              setDoc(doc(db, 'customers', c.id), c);
-            });
-          } else {
+          try {
+            const stateSnap = await getDoc(doc(db, 'settings', 'store_state'));
+            if (!stateSnap.exists()) {
+              for (const c of INITIAL_CUSTOMERS) {
+                await setDoc(doc(db, 'customers', c.id), c);
+              }
+            } else {
+              setCustomers([]);
+            }
+          } catch (e) {
+            console.error('Error checking store state for customers:', e);
             setCustomers([]);
           }
         } else {
@@ -387,16 +405,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Reset all data for clean fresh start
   const resetStoreData = async () => {
-    localStorage.setItem('dodo_store_reset', 'true');
     try {
+      await setDoc(doc(db, 'settings', 'store_state'), { isInitialized: true, isCleared: true });
+
       const prodDocs = await getDocs(collection(db, 'products'));
-      prodDocs.forEach((d) => deleteDoc(doc(db, 'products', d.id)));
+      for (const d of prodDocs.docs) {
+        await deleteDoc(doc(db, 'products', d.id));
+      }
 
       const orderDocs = await getDocs(collection(db, 'orders'));
-      orderDocs.forEach((d) => deleteDoc(doc(db, 'orders', d.id)));
+      for (const d of orderDocs.docs) {
+        await deleteDoc(doc(db, 'orders', d.id));
+      }
 
       const custDocs = await getDocs(collection(db, 'customers'));
-      custDocs.forEach((d) => deleteDoc(doc(db, 'customers', d.id)));
+      for (const d of custDocs.docs) {
+        await deleteDoc(doc(db, 'customers', d.id));
+      }
     } catch (e) {
       console.error('Error resetting Firestore store data:', e);
     }
@@ -412,8 +437,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loadDemoProducts = async () => {
-    localStorage.removeItem('dodo_store_reset');
     try {
+      await setDoc(doc(db, 'settings', 'store_state'), { isInitialized: true, isCleared: false });
       for (const p of INITIAL_PRODUCTS) {
         await setDoc(doc(db, 'products', p.id), p);
       }
