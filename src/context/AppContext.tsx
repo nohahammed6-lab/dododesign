@@ -13,6 +13,15 @@ import {
   OrderStatus
 } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_CUSTOMERS, CURRENCY_RATES } from '../data/mockData';
+import { db } from '../lib/firebase';
+import {
+  collection,
+  onSnapshot,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDocs
+} from 'firebase/firestore';
 
 interface AppContextType {
   // Localization
@@ -94,41 +103,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [adminTab, setAdminTab] = useState<AdminTab>('overview');
   const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-1');
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const isReset = localStorage.getItem('dodo_store_reset');
-      const saved = localStorage.getItem('dodo_products');
-      if (saved) return JSON.parse(saved);
-      if (isReset === 'true') return [];
-      return INITIAL_PRODUCTS;
-    } catch {
-      return INITIAL_PRODUCTS;
-    }
-  });
-
-  const [orders, setOrders] = useState<Order[]>(() => {
-    try {
-      const isReset = localStorage.getItem('dodo_store_reset');
-      const saved = localStorage.getItem('dodo_orders');
-      if (saved) return JSON.parse(saved);
-      if (isReset === 'true') return [];
-      return INITIAL_ORDERS;
-    } catch {
-      return INITIAL_ORDERS;
-    }
-  });
-
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    try {
-      const isReset = localStorage.getItem('dodo_store_reset');
-      const saved = localStorage.getItem('dodo_customers');
-      if (saved) return JSON.parse(saved);
-      if (isReset === 'true') return [];
-      return INITIAL_CUSTOMERS;
-    } catch {
-      return INITIAL_CUSTOMERS;
-    }
-  });
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -136,32 +113,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeCategory, setActiveCategory] = useState<ProductCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Persist products to LocalStorage
+  // Firebase Firestore Realtime Sync
   useEffect(() => {
-    try {
-      localStorage.setItem('dodo_products', JSON.stringify(products));
-    } catch (e) {
-      console.error('Failed to save products to localStorage', e);
-    }
-  }, [products]);
+    // 1. Sync Products
+    const unsubProducts = onSnapshot(
+      collection(db, 'products'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          const isReset = localStorage.getItem('dodo_store_reset');
+          if (isReset !== 'true') {
+            INITIAL_PRODUCTS.forEach((p) => {
+              setDoc(doc(db, 'products', p.id), p);
+            });
+          } else {
+            setProducts([]);
+          }
+        } else {
+          const loadedProducts: Product[] = [];
+          snapshot.forEach((docSnap) => {
+            loadedProducts.push(docSnap.data() as Product);
+          });
+          setProducts(loadedProducts);
+        }
+      },
+      (err) => console.error('Firestore products listener error:', err)
+    );
 
-  // Persist orders to LocalStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('dodo_orders', JSON.stringify(orders));
-    } catch (e) {
-      console.error('Failed to save orders to localStorage', e);
-    }
-  }, [orders]);
+    // 2. Sync Orders
+    const unsubOrders = onSnapshot(
+      collection(db, 'orders'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          const isReset = localStorage.getItem('dodo_store_reset');
+          if (isReset !== 'true') {
+            INITIAL_ORDERS.forEach((o) => {
+              setDoc(doc(db, 'orders', o.id), o);
+            });
+          } else {
+            setOrders([]);
+          }
+        } else {
+          const loadedOrders: Order[] = [];
+          snapshot.forEach((docSnap) => {
+            loadedOrders.push(docSnap.data() as Order);
+          });
+          loadedOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(loadedOrders);
+        }
+      },
+      (err) => console.error('Firestore orders listener error:', err)
+    );
 
-  // Persist customers to LocalStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('dodo_customers', JSON.stringify(customers));
-    } catch (e) {
-      console.error('Failed to save customers to localStorage', e);
-    }
-  }, [customers]);
+    // 3. Sync Customers
+    const unsubCustomers = onSnapshot(
+      collection(db, 'customers'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          const isReset = localStorage.getItem('dodo_store_reset');
+          if (isReset !== 'true') {
+            INITIAL_CUSTOMERS.forEach((c) => {
+              setDoc(doc(db, 'customers', c.id), c);
+            });
+          } else {
+            setCustomers([]);
+          }
+        } else {
+          const loadedCustomers: Customer[] = [];
+          snapshot.forEach((docSnap) => {
+            loadedCustomers.push(docSnap.data() as Customer);
+          });
+          setCustomers(loadedCustomers);
+        }
+      },
+      (err) => console.error('Firestore customers listener error:', err)
+    );
+
+    return () => {
+      unsubProducts();
+      unsubOrders();
+      unsubCustomers();
+    };
+  }, []);
 
   // URL hash / parameter listener for direct Admin access
   useEffect(() => {
@@ -223,74 +255,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return lang === 'ar' ? `${formattedNum} ج.م` : `${formattedNum} EGP`;
   };
 
-  const addReviewToProduct = (productId: string, userName: string, rating: number, comment: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        const newReview = {
-          id: `rev-${Date.now()}`,
-          userName: userName || (lang === 'ar' ? 'عميلة تم التحقق منها' : 'Verified Client'),
-          rating,
-          comment,
-          date: new Date().toISOString().split('T')[0],
-          isApproved: true,
-          productId: p.id,
-          productTitleAr: p.titleAr,
-          productTitleEn: p.titleEn,
-        };
-        const existingReviews = p.reviews || [];
-        const updatedReviews = [newReview, ...existingReviews];
-        const newReviewsCount = updatedReviews.length;
-        const totalRatingSum = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
-        const newAverageRating = parseFloat((totalRatingSum / newReviewsCount).toFixed(1));
+  const addReviewToProduct = async (productId: string, userName: string, rating: number, comment: string) => {
+    const targetProduct = products.find((p) => p.id === productId);
+    if (!targetProduct) return;
 
-        return {
-          ...p,
-          rating: newAverageRating,
-          reviewsCount: newReviewsCount,
-          reviews: updatedReviews,
-        };
-      })
-    );
-    showToast(lang === 'ar' ? 'شكراً لتقييمك! تم إضافته بنجاح' : 'Thank you for your rating!');
+    const newReview = {
+      id: `rev-${Date.now()}`,
+      userName: userName || (lang === 'ar' ? 'عميلة تم التحقق منها' : 'Verified Client'),
+      rating,
+      comment,
+      date: new Date().toISOString().split('T')[0],
+      isApproved: true,
+      productId,
+      productTitleAr: targetProduct.titleAr,
+      productTitleEn: targetProduct.titleEn,
+    };
+
+    const existingReviews = targetProduct.reviews || [];
+    const updatedReviews = [newReview, ...existingReviews];
+    const newReviewsCount = updatedReviews.length;
+    const totalRatingSum = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+    const newAverageRating = parseFloat((totalRatingSum / newReviewsCount).toFixed(1));
+
+    const updatedProduct = {
+      ...targetProduct,
+      rating: newAverageRating,
+      reviewsCount: newReviewsCount,
+      reviews: updatedReviews,
+    };
+
+    try {
+      await setDoc(doc(db, 'products', productId), updatedProduct, { merge: true });
+      showToast(lang === 'ar' ? 'شكراً لتقييمك! تم إضافته بنجاح' : 'Thank you for your rating!');
+    } catch (e) {
+      console.error('Error saving review to Firestore:', e);
+    }
   };
 
-  const deleteReview = (productId: string, reviewId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        const currentReviews = p.reviews || [];
-        const updatedReviews = currentReviews.filter((r) => r.id !== reviewId);
-        const newReviewsCount = updatedReviews.length;
-        const totalRatingSum = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
-        const newAverageRating = newReviewsCount > 0 ? parseFloat((totalRatingSum / newReviewsCount).toFixed(1)) : 5.0;
+  const deleteReview = async (productId: string, reviewId: string) => {
+    const targetProduct = products.find((p) => p.id === productId);
+    if (!targetProduct) return;
 
-        return {
-          ...p,
-          rating: newAverageRating,
-          reviewsCount: newReviewsCount,
-          reviews: updatedReviews,
-        };
-      })
-    );
-    showToast(lang === 'ar' ? 'تم حذف التقييم بنجاح' : 'Review deleted successfully');
+    const currentReviews = targetProduct.reviews || [];
+    const updatedReviews = currentReviews.filter((r) => r.id !== reviewId);
+    const newReviewsCount = updatedReviews.length;
+    const totalRatingSum = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+    const newAverageRating = newReviewsCount > 0 ? parseFloat((totalRatingSum / newReviewsCount).toFixed(1)) : 5.0;
+
+    const updatedProduct = {
+      ...targetProduct,
+      rating: newAverageRating,
+      reviewsCount: newReviewsCount,
+      reviews: updatedReviews,
+    };
+
+    try {
+      await setDoc(doc(db, 'products', productId), updatedProduct, { merge: true });
+      showToast(lang === 'ar' ? 'تم حذف التقييم بنجاح' : 'Review deleted successfully');
+    } catch (e) {
+      console.error('Error deleting review from Firestore:', e);
+    }
   };
 
-  const toggleApproveReview = (productId: string, reviewId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        const currentReviews = p.reviews || [];
-        const updatedReviews = currentReviews.map((r) =>
-          r.id === reviewId ? { ...r, isApproved: r.isApproved === false ? true : false } : r
-        );
-        return {
-          ...p,
-          reviews: updatedReviews,
-        };
-      })
+  const toggleApproveReview = async (productId: string, reviewId: string) => {
+    const targetProduct = products.find((p) => p.id === productId);
+    if (!targetProduct) return;
+
+    const currentReviews = targetProduct.reviews || [];
+    const updatedReviews = currentReviews.map((r) =>
+      r.id === reviewId ? { ...r, isApproved: r.isApproved === false ? true : false } : r
     );
-    showToast(lang === 'ar' ? 'تم تغيير حالة التقييم' : 'Review approval status updated');
+
+    const updatedProduct = {
+      ...targetProduct,
+      reviews: updatedReviews,
+    };
+
+    try {
+      await setDoc(doc(db, 'products', productId), updatedProduct, { merge: true });
+      showToast(lang === 'ar' ? 'تم تغيير حالة التقييم' : 'Review approval status updated');
+    } catch (e) {
+      console.error('Error toggling review in Firestore:', e);
+    }
   };
 
   const openProductDetail = (id: string) => {
@@ -300,72 +346,95 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Product CRUD
-  const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewsCount'>) => {
+  const addProduct = async (productData: Omit<Product, 'id' | 'rating' | 'reviewsCount'>) => {
     const newId = `prod-${Date.now()}`;
     const newProduct: Product = {
       ...productData,
       id: newId,
       rating: 5.0,
       reviewsCount: 0,
+      reviews: [],
     };
-    setProducts((prev) => [newProduct, ...prev]);
-    showToast(lang === 'ar' ? 'تمت إضافة القطعة بنجاح إلى المعرض' : 'Product successfully added to collection');
+    try {
+      await setDoc(doc(db, 'products', newId), newProduct);
+      showToast(lang === 'ar' ? 'تمت إضافة القطعة بنجاح إلى المعرض' : 'Product successfully added to collection');
+    } catch (e) {
+      console.error('Error adding product to Firestore:', e);
+    }
   };
 
-  const updateProduct = (id: string, updated: Partial<Product>) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updated } : p))
-    );
-    showToast(lang === 'ar' ? 'تم تحديث بيانات القطعة' : 'Product details updated');
+  const updateProduct = async (id: string, updated: Partial<Product>) => {
+    const targetProduct = products.find((p) => p.id === id);
+    if (!targetProduct) return;
+
+    const fullUpdatedProduct = { ...targetProduct, ...updated };
+    try {
+      await setDoc(doc(db, 'products', id), fullUpdatedProduct, { merge: true });
+      showToast(lang === 'ar' ? 'تم تحديث بيانات القطعة' : 'Product details updated');
+    } catch (e) {
+      console.error('Error updating product in Firestore:', e);
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    showToast(lang === 'ar' ? 'تم حذف القطعة من النظام' : 'Product removed from system');
+  const deleteProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      showToast(lang === 'ar' ? 'تم حذف القطعة من النظام' : 'Product removed from system');
+    } catch (e) {
+      console.error('Error deleting product from Firestore:', e);
+    }
   };
 
   // Reset all data for clean fresh start
-  const resetStoreData = () => {
+  const resetStoreData = async () => {
+    localStorage.setItem('dodo_store_reset', 'true');
+    try {
+      const prodDocs = await getDocs(collection(db, 'products'));
+      prodDocs.forEach((d) => deleteDoc(doc(db, 'products', d.id)));
+
+      const orderDocs = await getDocs(collection(db, 'orders'));
+      orderDocs.forEach((d) => deleteDoc(doc(db, 'orders', d.id)));
+
+      const custDocs = await getDocs(collection(db, 'customers'));
+      custDocs.forEach((d) => deleteDoc(doc(db, 'customers', d.id)));
+    } catch (e) {
+      console.error('Error resetting Firestore store data:', e);
+    }
     setProducts([]);
     setOrders([]);
     setCustomers([]);
     setCart([]);
-    try {
-      localStorage.setItem('dodo_products', JSON.stringify([]));
-      localStorage.setItem('dodo_orders', JSON.stringify([]));
-      localStorage.setItem('dodo_customers', JSON.stringify([]));
-      localStorage.setItem('dodo_store_reset', 'true');
-    } catch (e) {
-      console.error(e);
-    }
     showToast(
       lang === 'ar'
-        ? 'تم تصفير جميع البيانات! (المبيعات: 0 ج.م - الطلبات: 0 - العملاء: 0 - المنتجات: 0)'
-        : 'All data reset! (Sales: 0 EGP - Orders: 0 - Customers: 0 - Products: 0)'
+        ? 'تم تصفير جميع البيانات نهائياً في قاعدة البيانات الحية!'
+        : 'All store data cleared from live database!'
     );
   };
 
-  const loadDemoProducts = () => {
-    setProducts(INITIAL_PRODUCTS);
-    setOrders(INITIAL_ORDERS);
-    setCustomers(INITIAL_CUSTOMERS);
+  const loadDemoProducts = async () => {
+    localStorage.removeItem('dodo_store_reset');
     try {
-      localStorage.setItem('dodo_products', JSON.stringify(INITIAL_PRODUCTS));
-      localStorage.setItem('dodo_orders', JSON.stringify(INITIAL_ORDERS));
-      localStorage.setItem('dodo_customers', JSON.stringify(INITIAL_CUSTOMERS));
-      localStorage.removeItem('dodo_store_reset');
+      for (const p of INITIAL_PRODUCTS) {
+        await setDoc(doc(db, 'products', p.id), p);
+      }
+      for (const o of INITIAL_ORDERS) {
+        await setDoc(doc(db, 'orders', o.id), o);
+      }
+      for (const c of INITIAL_CUSTOMERS) {
+        await setDoc(doc(db, 'customers', c.id), c);
+      }
+      showToast(
+        lang === 'ar'
+          ? 'تمت استعادة العينات والمنتجات الافتراضية بنجاح'
+          : 'Demo sample products restored successfully'
+      );
     } catch (e) {
-      console.error(e);
+      console.error('Error loading demo products into Firestore:', e);
     }
-    showToast(
-      lang === 'ar'
-        ? 'تمت استعادة العينات والمنتجات الافتراضية بنجاح'
-        : 'Demo sample products restored successfully'
-    );
   };
 
   // Orders CRUD
-  const addOrder = (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>) => {
+  const addOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>) => {
     const newId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrder: Order = {
       ...orderData,
@@ -373,17 +442,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'processing',
       createdAt: new Date().toISOString(),
     };
-    setOrders((prev) => [newOrder, ...prev]);
-    clearCart();
-    setIsCheckoutOpen(false);
-    showToast(lang === 'ar' ? `تم تسجيل طلبك بنجاح رقم #${newId}` : `Order #${newId} placed successfully`);
+
+    try {
+      await setDoc(doc(db, 'orders', newId), newOrder);
+
+      // Customer Sync
+      const existingCustomer = customers.find((c) => c.phone === orderData.customerPhone);
+      const customerId = existingCustomer ? existingCustomer.id : `cust-${Date.now()}`;
+      const newCustomer: Customer = {
+        id: customerId,
+        name: orderData.customerName,
+        email: orderData.customerEmail,
+        phone: orderData.customerPhone,
+        city: orderData.customerCity,
+        totalOrders: (existingCustomer?.totalOrders || 0) + 1,
+        totalSpent: (existingCustomer?.totalSpent || 0) + orderData.totalAmount,
+        tier: ((existingCustomer?.totalSpent || 0) + orderData.totalAmount) > 10000 ? 'Royal VIP' : 'Gold VIP',
+        joinedDate: existingCustomer?.joinedDate || new Date().toISOString().split('T')[0],
+      };
+      await setDoc(doc(db, 'customers', customerId), newCustomer);
+
+      clearCart();
+      setIsCheckoutOpen(false);
+      showToast(lang === 'ar' ? `تم تسجيل طلبك بنجاح رقم #${newId}` : `Order #${newId} placed successfully`);
+    } catch (e) {
+      console.error('Error saving order to Firestore:', e);
+    }
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-    );
-    showToast(lang === 'ar' ? 'تم تحديث حالة الطلب' : 'Order status updated');
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+
+    try {
+      await setDoc(doc(db, 'orders', orderId), { ...targetOrder, status }, { merge: true });
+      showToast(lang === 'ar' ? 'تم تحديث حالة الطلب' : 'Order status updated');
+    } catch (e) {
+      console.error('Error updating order status in Firestore:', e);
+    }
   };
 
   // Cart Logic

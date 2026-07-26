@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "products": {
+      "title": "Products",
+      "description": "Store products including reviews and inventory",
+      "properties": {
+        "titleAr": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "price": { "type": "number" },
+        "images": { "type": "array" }
+      }
+    },
+    "orders": {
+      "title": "Orders",
+      "description": "Customer purchase orders",
+      "properties": {
+        "customerName": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" }
+      }
+    },
+    "customers": {
+      "title": "Customers",
+      "description": "Client profile records",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" }
+      }
+    }
+  }
+}
