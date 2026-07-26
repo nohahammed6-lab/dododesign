@@ -10,7 +10,8 @@ import {
   AdminTab,
   ProductCategory,
   ProductColor,
-  OrderStatus
+  OrderStatus,
+  SiteSettings
 } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_CUSTOMERS, CURRENCY_RATES } from '../data/mockData';
 import { db } from '../lib/firebase';
@@ -58,6 +59,13 @@ interface AppContextType {
   deleteOrder: (orderId: string) => void;
 
   customers: Customer[];
+  addCustomer: (customerData: Omit<Customer, 'id' | 'joinedDate'>) => void;
+  updateCustomer: (id: string, updated: Partial<Customer>) => void;
+  deleteCustomer: (id: string) => void;
+
+  // Site Contact Settings
+  siteSettings: SiteSettings;
+  updateSiteSettings: (updated: Partial<SiteSettings>) => Promise<void>;
 
   // Cart
   cart: CartItem[];
@@ -98,12 +106,22 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  phone: '01100935555',
+  whatsapp: '201100935555',
+  instagramHandle: 'dodoo__designs',
+  instagramUrl: 'https://www.instagram.com/dodoo__designs',
+  email: 'support@dododesign.shop',
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLang] = useState<Language>('ar');
   const [currency, setCurrency] = useState<Currency>('EGP');
   const [viewMode, setViewMode] = useState<ViewMode>('store');
   const [adminTab, setAdminTab] = useState<AdminTab>('overview');
   const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-1');
+
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -251,10 +269,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (err) => console.error('Firestore customers listener error:', err)
     );
 
+    // 4. Sync Site Settings
+    const unsubSettings = onSnapshot(
+      doc(db, 'settings', 'site_settings'),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as SiteSettings;
+          setSiteSettings((prev) => ({ ...prev, ...data }));
+        } else {
+          setDoc(doc(db, 'settings', 'site_settings'), DEFAULT_SITE_SETTINGS);
+        }
+      },
+      (err) => console.error('Firestore site_settings listener error:', err)
+    );
+
     return () => {
       unsubProducts();
       unsubOrders();
       unsubCustomers();
+      unsubSettings();
     };
   }, []);
 
@@ -527,7 +560,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         city: orderData.customerCity,
         totalOrders: (existingCustomer?.totalOrders || 0) + 1,
         totalSpent: (existingCustomer?.totalSpent || 0) + orderData.totalAmount,
-        tier: ((existingCustomer?.totalSpent || 0) + orderData.totalAmount) > 10000 ? 'Royal VIP' : 'Gold VIP',
+        tier: existingCustomer ? existingCustomer.tier : 'Gold VIP',
         joinedDate: existingCustomer?.joinedDate || new Date().toISOString().split('T')[0],
       };
       await setDoc(doc(db, 'customers', customerId), newCustomer);
@@ -558,6 +591,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast(lang === 'ar' ? 'تم حذف الطلب بنجاح' : 'Order deleted successfully');
     } catch (e) {
       console.error('Error deleting order from Firestore:', e);
+    }
+  };
+
+  // Customers CRUD
+  const addCustomer = async (customerData: Omit<Customer, 'id' | 'joinedDate'>) => {
+    const newId = `cust-${Date.now()}`;
+    const newCustomer: Customer = {
+      ...customerData,
+      id: newId,
+      joinedDate: new Date().toISOString().split('T')[0],
+    };
+    try {
+      await setDoc(doc(db, 'customers', newId), newCustomer);
+      showToast(lang === 'ar' ? 'تمت إضافة العميل إلى سجل VIP بنجاح' : 'VIP Customer added successfully');
+    } catch (e) {
+      console.error('Error adding customer to Firestore:', e);
+    }
+  };
+
+  const updateCustomer = async (id: string, updated: Partial<Customer>) => {
+    const targetCustomer = customers.find((c) => c.id === id);
+    if (!targetCustomer) return;
+
+    const fullUpdated = { ...targetCustomer, ...updated };
+    try {
+      await setDoc(doc(db, 'customers', id), fullUpdated, { merge: true });
+      showToast(lang === 'ar' ? 'تم تحديث بيانات العميل بنجاح' : 'Customer updated successfully');
+    } catch (e) {
+      console.error('Error updating customer in Firestore:', e);
+    }
+  };
+
+  const deleteCustomer = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'customers', id));
+      showToast(lang === 'ar' ? 'تم حذف العميل من سجل VIP بنجاح' : 'Customer deleted successfully');
+    } catch (e) {
+      console.error('Error deleting customer from Firestore:', e);
+    }
+  };
+
+  const updateSiteSettings = async (updated: Partial<SiteSettings>) => {
+    const newSettings = { ...siteSettings, ...updated };
+    setSiteSettings(newSettings);
+    try {
+      await setDoc(doc(db, 'settings', 'site_settings'), newSettings, { merge: true });
+      showToast(lang === 'ar' ? 'تم حفظ وتحديث بيانات المتجر بنجاح' : 'Site contact settings updated successfully');
+    } catch (e) {
+      console.error('Error updating site settings in Firestore:', e);
     }
   };
 
@@ -658,6 +740,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteOrder,
 
         customers,
+        addCustomer,
+        updateCustomer,
+        deleteCustomer,
+
+        siteSettings,
+        updateSiteSettings,
 
         cart,
         addToCart,

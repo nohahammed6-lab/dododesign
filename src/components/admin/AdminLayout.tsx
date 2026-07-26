@@ -5,7 +5,8 @@ import { ProductManagement } from './ProductManagement';
 import { OrdersManagement } from './OrdersManagement';
 import { CustomerManagement } from './CustomerManagement';
 import { ReviewsManagement } from './ReviewsManagement';
-import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code, Lock, Key, LogOut } from 'lucide-react';
+import { SiteSettingsManagement } from './SiteSettingsManagement';
+import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code, Lock, Key, LogOut, Sliders } from 'lucide-react';
 import { AdminTab } from '../../types';
 
 export const AdminLayout: React.FC = () => {
@@ -160,6 +161,12 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
       labelEn: 'VIP Member Directory',
       icon: <Users className="w-4 h-4" />
     },
+    {
+      key: 'settings',
+      labelAr: 'إعدادات أرقام المساعدة والتواصل',
+      labelEn: 'Store Contact Settings',
+      icon: <Sliders className="w-4 h-4" />
+    },
   ];
 
   return (
@@ -279,6 +286,7 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
           {adminTab === 'reviews' && <ReviewsManagement />}
           {adminTab === 'orders' && <OrdersManagement />}
           {adminTab === 'customers' && <CustomerManagement />}
+          {adminTab === 'settings' && <SiteSettingsManagement />}
         </main>
 
       </div>

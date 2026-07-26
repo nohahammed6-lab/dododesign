@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Sparkles, Send } from 'lucide-react';
 
 export const Footer: React.FC = () => {
-  const { lang, showToast, setActiveCategory, setViewMode } = useApp();
+  const { lang, showToast, setActiveCategory, setViewMode, siteSettings } = useApp();
   const [email, setEmail] = useState('');
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -79,12 +79,12 @@ export const Footer: React.FC = () => {
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-[#a09684] pt-2 border-t border-b border-[#1f1d17] py-6">
           <div className="flex items-center gap-2">
             <span className="text-[#d4af37] font-bold">{lang === 'ar' ? 'خدمة العملاء:' : 'Customer Care:'}</span>
-            <span dir="ltr" className="inline-block font-mono text-[#f0e8d8]">01100935555</span>
+            <span dir="ltr" className="inline-block font-mono text-[#f0e8d8]">{siteSettings.phone || '01100935555'}</span>
           </div>
           <span className="text-[#3a352a] hidden sm:inline">•</span>
           <div className="flex items-center gap-2">
             <span className="text-[#d4af37] font-bold">{lang === 'ar' ? 'البريد الإلكتروني:' : 'Email:'}</span>
-            <span>support@dododesign.shop</span>
+            <span>{siteSettings.email || 'support@dododesign.shop'}</span>
           </div>
           <span className="text-[#3a352a] hidden sm:inline">•</span>
           <div className="flex items-center gap-2">

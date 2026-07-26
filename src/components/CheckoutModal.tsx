@@ -17,11 +17,11 @@ export const CheckoutModal: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
-  const [customerName, setCustomerName] = useState('سارة أحمد');
-  const [customerPhone, setCustomerPhone] = useState('01100935555');
-  const [customerEmail, setCustomerEmail] = useState('support@dododesign.shop');
-  const [customerCity, setCustomerCity] = useState('القاهرة');
-  const [shippingAddress, setShippingAddress] = useState('شارع التحرير، الدقي، القاهرة، جمهورية مصر العربية');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerCity, setCustomerCity] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
 
   const [isSuccess, setIsSuccess] = useState(false);
@@ -109,25 +109,26 @@ export const CheckoutModal: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'الاسم الكامل' : 'Full Name'}</label>
+                      <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'الاسم الكامل *' : 'Full Name *'}</label>
                       <input
                         type="text"
                         required
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none"
+                        placeholder={lang === 'ar' ? 'أدخل الاسم الثلاثي...' : 'Enter your full name...'}
+                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none placeholder:text-[#524b3e]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'رقم الهاتف / الجوال' : 'Phone Number'}</label>
+                      <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'رقم الهاتف / الجوال *' : 'Phone Number *'}</label>
                       <input
                         type="tel"
                         dir="ltr"
                         required
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="01100935555"
-                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none font-mono text-left"
+                        placeholder="010xxxxxxx"
+                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none font-mono text-left placeholder:text-[#524b3e]"
                       />
                     </div>
                   </div>
@@ -137,32 +138,34 @@ export const CheckoutModal: React.FC = () => {
                       <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}</label>
                       <input
                         type="email"
-                        required
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
-                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none"
+                        placeholder={lang === 'ar' ? 'مثال: name@domain.com' : 'e.g. name@domain.com'}
+                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none placeholder:text-[#524b3e]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'المدينة' : 'City'}</label>
+                      <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'المدينة / المحافظة *' : 'City / Governorate *'}</label>
                       <input
                         type="text"
                         required
                         value={customerCity}
                         onChange={(e) => setCustomerCity(e.target.value)}
-                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none"
+                        placeholder={lang === 'ar' ? 'القاهرة، الجيزة، الإسكندرية...' : 'Cairo, Giza, Alexandria...'}
+                        className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none placeholder:text-[#524b3e]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'عنوان الشحن بالتفصيل' : 'Detailed Delivery Address'}</label>
+                    <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'عنوان الشحن بالتفصيل *' : 'Detailed Delivery Address *'}</label>
                     <textarea
                       rows={2}
                       required
                       value={shippingAddress}
                       onChange={(e) => setShippingAddress(e.target.value)}
-                      className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none resize-none"
+                      placeholder={lang === 'ar' ? 'الشارع، رقم المبنى، الشقة، العلامة المميزة...' : 'Street, building number, apartment, landmark...'}
+                      className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none resize-none placeholder:text-[#524b3e]"
                     ></textarea>
                   </div>
 

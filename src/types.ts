@@ -93,4 +93,12 @@ export interface Customer {
 }
 
 export type ViewMode = 'store' | 'product_detail' | 'admin';
-export type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'reviews';
+export type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'reviews' | 'settings';
+
+export interface SiteSettings {
+  phone: string;
+  whatsapp: string;
+  instagramHandle: string;
+  instagramUrl: string;
+  email: string;
+}

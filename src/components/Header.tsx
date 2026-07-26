@@ -15,6 +15,7 @@ export const Header: React.FC = () => {
     setIsWishlistOpen,
     setIsSizeGuideOpen,
     setActiveCategory,
+    siteSettings,
   } = useApp();
 
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
@@ -260,18 +261,21 @@ export const Header: React.FC = () => {
               </button>
 
               <a
-                href="https://www.instagram.com/dodoo__designs"
+                href={siteSettings.instagramUrl || 'https://www.instagram.com/dodoo__designs'}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsSideMenuOpen(false)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-[#833ab4]/20 via-[#fd1d1d]/20 to-[#fcb045]/20 border border-[#d4af37]/40 text-xs font-semibold text-[#f0e8d8] hover:brightness-125 transition"
+                className="w-full flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-[#833ab4]/20 via-[#fd1d1d]/20 to-[#fcb045]/20 border border-[#d4af37]/40 text-xs font-semibold text-[#f0e8d8] hover:brightness-125 transition"
               >
-                <Instagram className="w-4 h-4 text-[#e1306c]" />
-                <span>{lang === 'ar' ? 'انستجرام دودو ديزاين' : 'Instagram Page'}</span>
+                <div className="flex items-center gap-3">
+                  <Instagram className="w-4 h-4 text-[#e1306c]" />
+                  <span>{lang === 'ar' ? 'انستجرام دودو ديزاين' : 'Instagram Page'}</span>
+                </div>
+                <span dir="ltr" className="font-mono text-[#e1306c] text-[10px]">@{siteSettings.instagramHandle || 'dodoo__designs'}</span>
               </a>
 
               <a
-                href="https://wa.me/201100935555"
+                href={`https://wa.me/${(siteSettings.whatsapp || '201100935555').replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsSideMenuOpen(false)}
@@ -281,7 +285,7 @@ export const Header: React.FC = () => {
                   <MessageCircle className="w-4 h-4 text-[#25d366]" />
                   <span>{lang === 'ar' ? 'طلب خاص عبر الواتساب' : 'WhatsApp Support'}</span>
                 </div>
-                <span dir="ltr" className="font-mono text-[#25d366] text-[11px] font-bold">01100935555</span>
+                <span dir="ltr" className="font-mono text-[#25d366] text-[11px] font-bold">{siteSettings.phone || '01100935555'}</span>
               </a>
             </div>
 
@@ -293,11 +297,11 @@ export const Header: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-[#d4af37]" />
-                <span dir="ltr" className="inline-block font-mono text-[#f0e8d8] text-left">01100935555</span>
+                <span dir="ltr" className="inline-block font-mono text-[#f0e8d8] text-left">{siteSettings.phone || '01100935555'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#d4af37]" />
-                <span>support@dododesign.shop</span>
+                <span>{siteSettings.email || 'support@dododesign.shop'}</span>
               </div>
             </div>
 
