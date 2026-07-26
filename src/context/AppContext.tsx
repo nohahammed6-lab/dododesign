@@ -46,6 +46,7 @@ interface AppContextType {
 
   // Data Collections
   products: Product[];
+  isProductsLoading: boolean;
   addProduct: (product: Omit<Product, 'id' | 'rating' | 'reviewsCount'>) => void;
   updateProduct: (id: string, updated: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -182,10 +183,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentModerator, setCurrentModerator] = useState<Moderator | null>(null);
 
+  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('dodo_firestore_cache_products');
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
+
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const cached = localStorage.getItem('dodo_firestore_cache_products');
-      if (cached !== null) return JSON.parse(cached);
+      if (cached !== null) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch (e) {
       console.error(e);
     }
@@ -253,8 +266,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.error('Error saving products cache:', e);
           }
         }
+        setIsProductsLoading(false);
       },
-      (err) => console.error('Firestore products listener error:', err)
+      (err) => {
+        console.error('Firestore products listener error:', err);
+        setIsProductsLoading(false);
+      }
     );
 
     // 2. Sync Orders
@@ -851,6 +868,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openProductDetail,
 
         products,
+        isProductsLoading,
         addProduct,
         updateProduct,
         deleteProduct,

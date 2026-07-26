@@ -5,7 +5,7 @@ import { ProductCategory } from '../types';
 import { Sparkles, SlidersHorizontal } from 'lucide-react';
 
 export const HighlightGallery: React.FC = () => {
-  const { lang, products, searchQuery } = useApp();
+  const { lang, products, searchQuery, isProductsLoading } = useApp();
 
   const filteredProducts = products.filter((p) => {
     return (
@@ -36,7 +36,26 @@ export const HighlightGallery: React.FC = () => {
       </div>
 
       {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
+      {isProductsLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div
+              key={n}
+              className="bg-[#141218] rounded-2xl border border-[#27221a] overflow-hidden animate-pulse flex flex-col h-[400px]"
+            >
+              <div className="w-full h-[260px] bg-[#1d1a22]" />
+              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                <div className="h-4 bg-[#26212b] rounded w-3/4" />
+                <div className="h-3 bg-[#26212b] rounded w-1/2" />
+                <div className="flex justify-between items-center pt-2">
+                  <div className="h-5 bg-[#26212b] rounded w-1/3" />
+                  <div className="h-8 bg-[#332b1f] rounded-lg w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredProducts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
