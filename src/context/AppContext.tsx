@@ -189,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error(e);
     }
-    return INITIAL_PRODUCTS;
+    return [];
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -199,7 +199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error(e);
     }
-    return INITIAL_ORDERS;
+    return [];
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
@@ -209,7 +209,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error(e);
     }
-    return INITIAL_CUSTOMERS;
+    return [];
   });
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -234,17 +234,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 await setDoc(doc(db, 'products', p.id), p);
               }
             } else {
-              const stateData = stateSnap.data();
-              if (stateData?.isCleared) {
-                setProducts([]);
-                localStorage.setItem('dodo_firestore_cache_products', JSON.stringify([]));
-              } else {
-                setProducts(INITIAL_PRODUCTS);
-              }
+              setProducts([]);
+              localStorage.setItem('dodo_firestore_cache_products', JSON.stringify([]));
             }
           } catch (e) {
             console.error('Error checking store state:', e);
-            setProducts(INITIAL_PRODUCTS);
+            setProducts([]);
           }
         } else {
           const loadedProducts: Product[] = [];
