@@ -37,6 +37,8 @@ interface AppContextType {
   updateProduct: (id: string, updated: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   addReviewToProduct: (productId: string, userName: string, rating: number, comment: string) => void;
+  deleteReview: (productId: string, reviewId: string) => void;
+  toggleApproveReview: (productId: string, reviewId: string) => void;
   resetStoreData: () => void;
   loadDemoProducts: () => void;
 
@@ -231,6 +233,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           rating,
           comment,
           date: new Date().toISOString().split('T')[0],
+          isApproved: true,
+          productId: p.id,
+          productTitleAr: p.titleAr,
+          productTitleEn: p.titleEn,
         };
         const existingReviews = p.reviews || [];
         const updatedReviews = [newReview, ...existingReviews];
@@ -247,6 +253,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
     showToast(lang === 'ar' ? 'شكراً لتقييمك! تم إضافته بنجاح' : 'Thank you for your rating!');
+  };
+
+  const deleteReview = (productId: string, reviewId: string) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const currentReviews = p.reviews || [];
+        const updatedReviews = currentReviews.filter((r) => r.id !== reviewId);
+        const newReviewsCount = updatedReviews.length;
+        const totalRatingSum = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+        const newAverageRating = newReviewsCount > 0 ? parseFloat((totalRatingSum / newReviewsCount).toFixed(1)) : 5.0;
+
+        return {
+          ...p,
+          rating: newAverageRating,
+          reviewsCount: newReviewsCount,
+          reviews: updatedReviews,
+        };
+      })
+    );
+    showToast(lang === 'ar' ? 'تم حذف التقييم بنجاح' : 'Review deleted successfully');
+  };
+
+  const toggleApproveReview = (productId: string, reviewId: string) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const currentReviews = p.reviews || [];
+        const updatedReviews = currentReviews.map((r) =>
+          r.id === reviewId ? { ...r, isApproved: r.isApproved === false ? true : false } : r
+        );
+        return {
+          ...p,
+          reviews: updatedReviews,
+        };
+      })
+    );
+    showToast(lang === 'ar' ? 'تم تغيير حالة التقييم' : 'Review approval status updated');
   };
 
   const openProductDetail = (id: string) => {
@@ -428,6 +472,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateProduct,
         deleteProduct,
         addReviewToProduct,
+        deleteReview,
+        toggleApproveReview,
         resetStoreData,
         loadDemoProducts,
 

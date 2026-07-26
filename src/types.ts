@@ -93,4 +93,4 @@ export interface Customer {
 }
 
 export type ViewMode = 'store' | 'product_detail' | 'admin';
-export type AdminTab = 'overview' | 'products' | 'orders' | 'customers';
+export type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'reviews';

@@ -4,12 +4,15 @@ import { DashboardOverview } from './DashboardOverview';
 import { ProductManagement } from './ProductManagement';
 import { OrdersManagement } from './OrdersManagement';
 import { CustomerManagement } from './CustomerManagement';
-import { LayoutDashboard, Package, ShoppingBag, Users, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles } from 'lucide-react';
+import { ReviewsManagement } from './ReviewsManagement';
+import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code } from 'lucide-react';
 import { AdminTab } from '../../types';
 
 export const AdminLayout: React.FC = () => {
-  const { lang, setLang, adminTab, setAdminTab, setViewMode, showToast } = useApp();
+  const { lang, setLang, adminTab, setAdminTab, setViewMode, showToast, products, orders, customers } = useApp();
   const [isCopied, setIsCopied] = useState(false);
+  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
+  const [copiedData, setCopiedData] = useState(false);
 
   const adminUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}${window.location.pathname}#admin`
@@ -20,6 +23,18 @@ export const AdminLayout: React.FC = () => {
     setIsCopied(true);
     showToast(lang === 'ar' ? 'تم نسخ رابط لوحة التحكم بنجاح!' : 'Admin URL copied to clipboard!');
     setTimeout(() => setIsCopied(false), 3000);
+  };
+
+  const handleCopyExportCode = () => {
+    const code = `// Paste this updated data into src/data/mockData.ts to publish changes permanently to Vercel
+export const INITIAL_PRODUCTS = ${JSON.stringify(products, null, 2)};
+export const INITIAL_ORDERS = ${JSON.stringify(orders, null, 2)};
+export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
+`;
+    navigator.clipboard.writeText(code);
+    setCopiedData(true);
+    showToast(lang === 'ar' ? 'تم نسخ كود البيانات لـ GitHub بنجاح!' : 'Export code copied to clipboard!');
+    setTimeout(() => setCopiedData(false), 3000);
   };
 
   const tabs: { key: AdminTab; labelAr: string; labelEn: string; icon: React.ReactNode }[] = [
@@ -34,6 +49,12 @@ export const AdminLayout: React.FC = () => {
       labelAr: 'إدارة الكتالوج والمخزون',
       labelEn: 'Products Catalog',
       icon: <Package className="w-4 h-4" />
+    },
+    {
+      key: 'reviews',
+      labelAr: 'إدارة التقييمات وآراء العملاء',
+      labelEn: 'Reviews Management',
+      icon: <MessageSquare className="w-4 h-4" />
     },
     {
       key: 'orders',
@@ -92,6 +113,16 @@ export const AdminLayout: React.FC = () => {
               </button>
             </div>
 
+            {/* Export Code for GitHub button */}
+            <button
+              onClick={() => setIsDataModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f1a14] border border-[#d4af37]/60 hover:bg-[#d4af37] hover:text-black text-[#d4af37] rounded text-xs transition font-semibold cursor-pointer"
+              title="تصدير الكود لـ GitHub"
+            >
+              <Code className="w-3.5 h-3.5" />
+              <span>{lang === 'ar' ? 'تصدير لـ GitHub / Vercel' : 'Export for GitHub'}</span>
+            </button>
+
             {/* Language Toggle in Admin Panel */}
             <button
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
@@ -143,11 +174,71 @@ export const AdminLayout: React.FC = () => {
         <main className="flex-1 min-w-0">
           {adminTab === 'overview' && <DashboardOverview />}
           {adminTab === 'products' && <ProductManagement />}
+          {adminTab === 'reviews' && <ReviewsManagement />}
           {adminTab === 'orders' && <OrdersManagement />}
           {adminTab === 'customers' && <CustomerManagement />}
         </main>
 
       </div>
+
+      {/* Export for GitHub Modal */}
+      {isDataModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111015] border border-[#3d3322] w-full max-w-2xl rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#26221c] pb-3">
+              <div className="flex items-center gap-2">
+                <Code className="w-5 h-5 text-[#d4af37]" />
+                <h3 className="font-bold text-base font-serif-ar text-gold-gradient">
+                  {lang === 'ar' ? 'تحديث البيانات الدائمة لجميع الزوار على Vercel' : 'Publish Permanent Changes to Vercel'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDataModalOpen(false)}
+                className="text-[#a39783] hover:text-white font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-[#dcd7cb]">
+              <div className="p-3.5 bg-[#181510] border border-[#3b311e] rounded-xl text-[#e8dbbf]">
+                <p className="font-semibold text-amber-300 mb-1">
+                  💡 لماذا لا تظهر التعديلات للجميع مباشرة على Vercel؟
+                </p>
+                <p>
+                  لأن المواقع المستضافة كـ Frontend على Vercel تعمل في متصفح كل زائر بشكل مستقل وتحفظ تعديلاتك في الـ LocalStorage الخاصة بجهازك فقط. 
+                  لكي تظهر التعديلات التي أجريتها (المنتجات، التقييمات، الطلبات) لجميع زوار الدومين على أي هاتف أو جهاز:
+                </p>
+              </div>
+
+              <ol className="list-decimal list-inside space-y-2 text-[#c7bfae] bg-[#16141b] p-4 rounded-xl border border-[#2b251a]">
+                <li>
+                  اضغط على زر <strong className="text-[#d4af37]">"نسخ كود mockData التراكمي"</strong> أدناه.
+                </li>
+                <li>
+                  افتح مستودع مشروعك على <strong className="text-white">GitHub</strong> وافتح الملف <code className="bg-[#211d27] px-1.5 py-0.5 rounded text-[#d4af37]">src/data/mockData.ts</code>.
+                </li>
+                <li>
+                  استبدل محتوى الملف بالكود المنسوخ واعمل <strong className="text-white">Commit Changes</strong>.
+                </li>
+                <li>
+                  سيقوم Vercel بإعادة البناء وتحديث البيانات المباشرة فوراً لكل زوار الدومين مجاناً!
+                </li>
+              </ol>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  onClick={handleCopyExportCode}
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa771c] text-black font-bold rounded-xl shadow-lg hover:brightness-110 transition flex items-center gap-2 cursor-pointer"
+                >
+                  {copiedData ? <Check className="w-4 h-4 text-black" /> : <Copy className="w-4 h-4 text-black" />}
+                  <span>{copiedData ? (lang === 'ar' ? 'تم نسخ كود mockData!' : 'Copied!') : (lang === 'ar' ? 'نسخ كود mockData التراكمي' : 'Copy Updated mockData Code')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

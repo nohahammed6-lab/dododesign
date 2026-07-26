@@ -24,7 +24,9 @@ export const ProductManagement: React.FC = () => {
   const [descriptionEn, setDescriptionEn] = useState('');
   const [price, setPrice] = useState(3500);
   const [category, setCategory] = useState<ProductCategory>('collection');
-  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=1200&q=80');
+  const [imageUrls, setImageUrls] = useState<string[]>([
+    'https://images.unsplash.com/photo-[#566174053879-31528523f8ae]?auto=format&fit=crop&w=1200&q=80'
+  ]);
   const [sku, setSku] = useState(`DODO-ITEM-${Math.floor(100 + Math.random() * 900)}`);
   const [stock, setStock] = useState(5);
   const [sizesString, setSizesString] = useState('S, M, L, XL');
@@ -48,7 +50,10 @@ export const ProductManagement: React.FC = () => {
     setDescriptionEn('');
     setPrice(3500);
     setCategory('collection');
-    setImageUrl('https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80');
+    setImageUrls([
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=80'
+    ]);
     setSku(`DODO-ITEM-${Math.floor(100 + Math.random() * 900)}`);
     setStock(6);
     setSizesString('S, M, L, XL');
@@ -65,13 +70,34 @@ export const ProductManagement: React.FC = () => {
     setDescriptionEn(p.descriptionEn);
     setPrice(p.price);
     setCategory(p.category);
-    setImageUrl(p.images[0]);
+    setImageUrls(p.images && p.images.length > 0 ? [...p.images] : [
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80'
+    ]);
     setSku(p.sku);
     setStock(p.stock);
     setSizesString(p.sizes ? p.sizes.join(', ') : 'S, M, L, XL');
     setColorsString(p.colors ? p.colors.map(c => c.nameAr).join(', ') : 'أسود ملكي, ذهبي ناعم');
     setIsLimited(!!p.isLimitedEdition);
     setIsModalOpen(true);
+  };
+
+  const handleAddImageUrlField = () => {
+    setImageUrls((prev) => [...prev, '']);
+  };
+
+  const handleUpdateImageUrl = (index: number, newUrl: string) => {
+    setImageUrls((prev) => {
+      const updated = [...prev];
+      updated[index] = newUrl;
+      return updated;
+    });
+  };
+
+  const handleRemoveImageUrl = (index: number) => {
+    setImageUrls((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSaveProduct = (e: React.FormEvent) => {
@@ -106,6 +132,14 @@ export const ProductManagement: React.FC = () => {
       { nameAr: 'ذهبي ناعم', nameEn: 'Soft Gold', hex: '#d4af37' }
     ];
 
+    const cleanImageUrls = imageUrls
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
+
+    const finalImages = cleanImageUrls.length > 0 
+      ? cleanImageUrls 
+      : ['https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80'];
+
     const categoryNames: Record<string, { ar: string; en: string }> = {
       collection: { ar: 'تشكيلة أزياء دودو ديزاين', en: 'Dodo Design Collection' },
       dresses: { ar: 'فساتين السهرة', en: 'Evening Dresses' },
@@ -127,7 +161,7 @@ export const ProductManagement: React.FC = () => {
         category: 'collection',
         categoryNameAr: catName.ar,
         categoryNameEn: catName.en,
-        images: [imageUrl],
+        images: finalImages,
         colors: finalColors,
         sku,
         stock: Number(stock),
@@ -144,7 +178,7 @@ export const ProductManagement: React.FC = () => {
         category: 'collection',
         categoryNameAr: catName.ar,
         categoryNameEn: catName.en,
-        images: [imageUrl],
+        images: finalImages,
         colors: finalColors,
         sizes: parsedSizes.length > 0 ? parsedSizes : ['S', 'M', 'L', 'XL'],
         sku,
@@ -262,12 +296,17 @@ export const ProductManagement: React.FC = () => {
                           <img src={p.images[0]} alt={title} className="w-10 h-12 object-cover rounded bg-[#1a1820]" />
                           <div>
                             <span className="font-semibold text-[#f5f0e6] block line-clamp-1">{title}</span>
-                            {p.isLimitedEdition && (
-                              <span className="text-[10px] text-[#d4af37] flex items-center gap-1 mt-0.5">
-                                <Sparkles className="w-3 h-3" />
-                                {lang === 'ar' ? 'إصدار محدود' : 'Limited Edition'}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-[#918571] font-mono">
+                                ({p.images?.length || 1} {lang === 'ar' ? 'صور' : 'photos'})
                               </span>
-                            )}
+                              {p.isLimitedEdition && (
+                                <span className="text-[10px] text-[#d4af37] flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3" />
+                                  {lang === 'ar' ? 'إصدار محدود' : 'Limited Edition'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -447,15 +486,77 @@ export const ProductManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-[#a09684] mb-1">{lang === 'ar' ? 'رابط الصورة العالية الدقة' : 'High-Res Image URL'}</label>
-                <input
-                  type="url"
-                  required
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#f0e8d8] outline-none"
-                />
+              {/* Multiple Product Images Section */}
+              <div className="space-y-3 bg-[#16151b] border border-[#2e2922] p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-bold text-[#d4af37]">
+                      {lang === 'ar' ? 'معرض صور القطعة (ألبوم الصور)' : 'Product Image Gallery'}
+                    </label>
+                    <p className="text-[11px] text-[#807666] mt-0.5">
+                      {lang === 'ar' ? 'يمكنك إضافة عدة صور ليتم عرضها كألبوم تفاعلي عندما يفتح العميل تفاصيل القطعة' : 'Add multiple image URLs for client gallery carousel'}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddImageUrlField}
+                    className="flex items-center gap-1 text-[11px] font-bold text-black bg-[#d4af37] hover:bg-[#e5c158] px-2.5 py-1 rounded transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? 'إضافة صورة' : 'Add Image'}</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {imageUrls.map((url, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="w-10 h-12 bg-[#0c0b0f] border border-[#2e2922] rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        {url.trim() ? (
+                          <img
+                            src={url}
+                            alt={`Image ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span className="text-[10px] text-[#554e43] font-mono">#{idx + 1}</span>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] text-[#a09684] font-semibold">
+                            {idx === 0 
+                              ? (lang === 'ar' ? 'الصورة الرئيسية (الواجهة)' : 'Main Cover Photo') 
+                              : (lang === 'ar' ? `صورة إضافية #${idx + 1}` : `Gallery Image #${idx + 1}`)}
+                          </span>
+                        </div>
+                        <input
+                          type="url"
+                          required={idx === 0}
+                          value={url}
+                          onChange={(e) => handleUpdateImageUrl(idx, e.target.value)}
+                          placeholder={lang === 'ar' ? 'ضع رابط الصورة هنا (HTTPS)...' : 'Image URL (https://...)'}
+                          className="w-full bg-[#0c0b0f] border border-[#2e2922] focus:border-[#d4af37] text-xs px-3 py-1.5 rounded text-[#f0e8d8] outline-none"
+                        />
+                      </div>
+
+                      {imageUrls.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImageUrl(idx)}
+                          className="p-2 text-rose-400 hover:bg-rose-900/30 rounded transition cursor-pointer self-end mb-0.5"
+                          title={lang === 'ar' ? 'حذف هذه الصورة' : 'Remove image'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
