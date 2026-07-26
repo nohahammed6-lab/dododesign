@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ColorSwatch } from './ColorSwatch';
 import { X, Trash2, ShoppingBag, ArrowLeft, ArrowRight, Tag, ShieldCheck, Check } from 'lucide-react';
 
 export const CartDrawer: React.FC = () => {
@@ -94,11 +95,8 @@ export const CartDrawer: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-2 text-[11px] text-[#9c9383] mt-1">
-                          <span className="flex items-center gap-1">
-                            <span
-                              className="w-2 h-2 rounded-full border border-[#443d32]"
-                              style={{ backgroundColor: item.selectedColor.hex }}
-                            ></span>
+                          <span className="flex items-center gap-1.5">
+                            <ColorSwatch color={item.selectedColor} size="xs" showTitle={false} />
                             {colorName}
                           </span>
                           <span>•</span>

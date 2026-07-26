@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ProductCard } from './ProductCard';
+import { ColorSwatch } from './ColorSwatch';
 import {
   Sparkles,
   Heart,
@@ -205,21 +206,19 @@ export const ProductDetail: React.FC = () => {
                 <span className="text-[#a8a08f] font-medium">{lang === 'ar' ? 'اللون الخارجي:' : 'Color:'}</span>
                 <span className="text-[#f0e8d8] font-semibold">{lang === 'ar' ? selectedColor.nameAr : selectedColor.nameEn}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {product.colors.map((color, idx) => {
-                  const isSelected = selectedColor.hex === color.hex;
+                  const isSelected = selectedColor.nameAr === color.nameAr && selectedColor.hex === color.hex;
                   return (
-                    <button
+                    <ColorSwatch
                       key={idx}
+                      color={color}
+                      isSelected={isSelected}
+                      size="lg"
+                      showCheck={isSelected}
+                      lang={lang}
                       onClick={() => setSelectedColor(color)}
-                      className={`relative w-8 h-8 rounded-full border-2 transition duration-200 flex items-center justify-center ${
-                        isSelected ? 'border-[#d4af37] scale-110 shadow-lg shadow-[#d4af37]/20' : 'border-[#383329]'
-                      }`}
-                      style={{ backgroundColor: color.hex }}
-                      title={lang === 'ar' ? color.nameAr : color.nameEn}
-                    >
-                      {isSelected && <Check className="w-4 h-4 text-white drop-shadow-md" />}
-                    </button>
+                    />
                   );
                 })}
               </div>

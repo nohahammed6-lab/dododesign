@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Plus, Search, Trash2, Edit, Sparkles, X, Check } from 'lucide-react';
 import { ProductCategory, Product } from '../../types';
+import { parseColorName } from '../../utils/colorUtils';
+import { ColorSwatch } from '../ColorSwatch';
 
 export const ProductManagement: React.FC = () => {
   const { lang, products, addProduct, updateProduct, deleteProduct, formatPrice, resetStoreData, loadDemoProducts } = useApp();
@@ -112,20 +114,7 @@ export const ProductManagement: React.FC = () => {
       .split(',')
       .map((c) => c.trim())
       .filter((c) => c.length > 0)
-      .map((colorName) => {
-        let hex = '#0a0a0c';
-        if (colorName.includes('ذهبي') || colorName.includes('Gold')) hex = '#d4af37';
-        else if (colorName.includes('أحمر') || colorName.includes('Red')) hex = '#8b0000';
-        else if (colorName.includes('أبيض') || colorName.includes('White') || colorName.includes('أوف وايت')) hex = '#f5f5f0';
-        else if (colorName.includes('كحلي') || colorName.includes('Navy') || colorName.includes('أزرق')) hex = '#1a2b4c';
-        else if (colorName.includes('وردي') || colorName.includes('Pink')) hex = '#e8a5b8';
-        else if (colorName.includes('اخضر') || colorName.includes('أخضر') || colorName.includes('Green')) hex = '#1b4d3e';
-        return {
-          nameAr: colorName,
-          nameEn: colorName,
-          hex,
-        };
-      });
+      .map((colorName) => parseColorName(colorName));
 
     const finalColors = parsedColors.length > 0 ? parsedColors : [
       { nameAr: 'أسود ملكي', nameEn: 'Royal Black', hex: '#0a0a0c' },
@@ -477,11 +466,32 @@ export const ProductManagement: React.FC = () => {
                     required
                     value={colorsString}
                     onChange={(e) => setColorsString(e.target.value)}
-                    placeholder="أسود ملكي, ذهبي ناعم, أوف وايت"
+                    placeholder="أسود ملكي, أبيض واسود, ذهبي و نبيتي"
                     className="w-full bg-[#16151b] border border-[#2e2922] focus:border-[#d4af37] text-xs p-3 rounded text-[#e0d6c3] outline-none"
                   />
+                  
+                  {/* Live Swatch Preview */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap bg-[#0e0d11] p-2 rounded border border-[#232019]">
+                    <span className="text-[10px] text-[#807666] font-semibold">
+                      {lang === 'ar' ? 'معاينة دوائر الألوان:' : 'Preview:'}
+                    </span>
+                    {colorsString
+                      .split(',')
+                      .map((c) => c.trim())
+                      .filter((c) => c.length > 0)
+                      .map((colorName, idx) => {
+                        const parsed = parseColorName(colorName);
+                        return (
+                          <div key={idx} className="flex items-center gap-1 bg-[#1a1820] px-2 py-0.5 rounded border border-[#332e24]">
+                            <ColorSwatch color={parsed} size="xs" showTitle={false} />
+                            <span className="text-[10px] text-[#d4af37] font-medium">{colorName}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+
                   <p className="text-[10px] text-[#807666] mt-1">
-                    {lang === 'ar' ? 'مثال: أسود ملكي, ذهبي ناعم, كحلي, أوف وايت' : 'e.g. Royal Black, Soft Gold, White'}
+                    {lang === 'ar' ? 'ملاحظة: يمكنك إدخال ألوان دمج مثل (أبيض واسود) أو (ذهبي وأسود) وستظهر بالدائرة مقسومة تلقائياً!' : 'Tip: Enter multi-colors like (White & Black) for split color circles!'}
                   </p>
                 </div>
               </div>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Product } from '../types';
+import { Product, ProductColor } from '../types';
 import { useApp } from '../context/AppContext';
 import { Heart, ShoppingBag, Eye, Star, Sparkles, Check } from 'lucide-react';
+import { ColorSwatch } from './ColorSwatch';
 
 interface ProductCardProps {
   product: Product;
@@ -21,6 +22,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'M'
   );
 
+  const [selectedColor, setSelectedColor] = useState<ProductColor>(
+    product.colors && product.colors.length > 0
+      ? product.colors[0]
+      : { nameAr: 'أسود ملكي', nameEn: 'Royal Black', hex: '#0a0a0c' }
+  );
+
   const isWishlisted = isInWishlist(product.id);
 
   const title = lang === 'ar' ? product.titleAr : product.titleEn;
@@ -28,9 +35,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const [added, setAdded] = useState(false);
 
+  // Compute active image based on selected color or fallback to product cover
+  const colorIndex = product.colors.findIndex(
+    (c) => c.nameAr === selectedColor.nameAr || c.hex === selectedColor.hex
+  );
+  const activeImage =
+    selectedColor.images?.[0] ||
+    (colorIndex >= 0 && product.images[colorIndex] ? product.images[colorIndex] : product.images[0]);
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(product, product.colors[0], selectedSize, 1, false);
+    addToCart(product, selectedColor, selectedSize, 1, false);
     setAdded(true);
     setTimeout(() => {
       setAdded(false);
@@ -50,7 +65,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Image Container */}
       <div className="relative aspect-[3/4] overflow-hidden bg-[#1a181d]">
         <img
-          src={product.images[0]}
+          src={activeImage}
           alt={title}
           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out filter brightness-95 group-hover:brightness-100"
         />
@@ -133,12 +148,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             {title}
           </h3>
 
+          {/* Interactive Color Selection directly on Homepage Card */}
+          {product.colors && product.colors.length > 0 && (
+            <div
+              className="my-2 bg-[#0d0c10] p-2 rounded-lg border border-[#27231c]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-[#a09684] font-semibold">
+                  {lang === 'ar' ? 'اختر اللون:' : 'Color:'}
+                </span>
+                <span className="text-[10px] font-bold text-[#d4af37]">
+                  {lang === 'ar' ? selectedColor.nameAr : selectedColor.nameEn}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {product.colors.map((color, idx) => {
+                  const isSelected = selectedColor.nameAr === color.nameAr && selectedColor.hex === color.hex;
+                  return (
+                    <ColorSwatch
+                      key={idx}
+                      color={color}
+                      isSelected={isSelected}
+                      size="sm"
+                      showCheck={isSelected}
+                      lang={lang}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedColor(color);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Interactive Size Selection Directly on Homepage Card */}
           {product.sizes && product.sizes.length > 0 && (
             <div className="my-2 bg-[#0d0c10] p-2 rounded-lg border border-[#27231c]" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] text-[#a09684] font-semibold">
-                  {lang === 'ar' ? 'اختر المقاس مباشرة:' : 'Select Size:'}
+                  {lang === 'ar' ? 'اختر المقاس:' : 'Select Size:'}
                 </span>
                 <span className="text-[10px] font-bold text-[#d4af37]">{selectedSize}</span>
               </div>
@@ -175,15 +226,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {formatPrice(product.price)}
             </div>
 
-            {/* Color Dots */}
+            {/* Quick Color Dots Preview */}
             <div className="flex items-center gap-1">
               {product.colors.map((color, idx) => (
-                <span
+                <ColorSwatch
                   key={idx}
-                  className="w-2.5 h-2.5 rounded-full border border-[#4a4235]"
-                  style={{ backgroundColor: color.hex }}
-                  title={lang === 'ar' ? color.nameAr : color.nameEn}
-                ></span>
+                  color={color}
+                  size="xs"
+                  isSelected={selectedColor.nameAr === color.nameAr}
+                  lang={lang}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedColor(color);
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -205,7 +261,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             ) : (
               <>
                 <ShoppingBag className="w-3.5 h-3.5" />
-                <span>{lang === 'ar' ? 'إضافة للسلة' : 'Add to Cart'}</span>
+                <span>{lang === 'ar' ? `إضافة للسلة (${selectedColor.nameAr})` : `Add to Cart (${selectedColor.nameEn})`}</span>
               </>
             )}
           </button>
@@ -214,3 +270,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     </div>
   );
 };
+
