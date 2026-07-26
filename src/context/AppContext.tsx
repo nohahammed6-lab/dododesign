@@ -11,7 +11,9 @@ import {
   ProductCategory,
   ProductColor,
   OrderStatus,
-  SiteSettings
+  SiteSettings,
+  Moderator,
+  AdminPermissions
 } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_CUSTOMERS, CURRENCY_RATES } from '../data/mockData';
 import { db } from '../lib/firebase';
@@ -67,6 +69,14 @@ interface AppContextType {
   siteSettings: SiteSettings;
   updateSiteSettings: (updated: Partial<SiteSettings>) => Promise<void>;
 
+  // Moderators & Permissions
+  moderators: Moderator[];
+  addModerator: (modData: Omit<Moderator, 'id' | 'createdAt'>) => void;
+  updateModerator: (id: string, updated: Partial<Moderator>) => void;
+  deleteModerator: (id: string) => void;
+  currentModerator: Moderator | null;
+  setCurrentModerator: (mod: Moderator | null) => void;
+
   // Cart
   cart: CartItem[];
   addToCart: (product: Product, color: ProductColor, size: string, quantity?: number, openCart?: boolean) => void;
@@ -114,6 +124,43 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   email: 'support@dododesign.shop',
 };
 
+const DEFAULT_MODERATORS: Moderator[] = [
+  {
+    id: 'mod-owner',
+    name: 'المالك الرئيسي (Admin)',
+    email: 'admin@dododesign.shop',
+    pinCode: 'dododesign123',
+    role: 'owner',
+    permissions: {
+      overview: true,
+      products: true,
+      orders: true,
+      customers: true,
+      reviews: true,
+      settings: true,
+      moderators: true,
+    },
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'mod-sales',
+    name: 'محمود (مشرف المبيعات والطلبات)',
+    email: 'sales@dododesign.shop',
+    pinCode: '1234',
+    role: 'moderator',
+    permissions: {
+      overview: true,
+      products: true,
+      orders: true,
+      customers: false,
+      reviews: true,
+      settings: false,
+      moderators: false,
+    },
+    createdAt: new Date().toISOString(),
+  },
+];
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLang] = useState<Language>('ar');
   const [currency, setCurrency] = useState<Currency>('EGP');
@@ -122,6 +169,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-1');
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+
+  const [moderators, setModerators] = useState<Moderator[]>(() => {
+    try {
+      const cached = localStorage.getItem('dodo_firestore_cache_moderators');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_MODERATORS;
+  });
+
+  const [currentModerator, setCurrentModerator] = useState<Moderator | null>(null);
 
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -283,11 +342,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (err) => console.error('Firestore site_settings listener error:', err)
     );
 
+    // 5. Sync Moderators
+    const unsubModerators = onSnapshot(
+      collection(db, 'moderators'),
+      async (snapshot) => {
+        if (snapshot.empty) {
+          try {
+            for (const m of DEFAULT_MODERATORS) {
+              await setDoc(doc(db, 'moderators', m.id), m);
+            }
+          } catch (e) {
+            console.error('Error seeding moderators:', e);
+            setModerators(DEFAULT_MODERATORS);
+          }
+        } else {
+          const loadedMods: Moderator[] = [];
+          snapshot.forEach((docSnap) => {
+            loadedMods.push(docSnap.data() as Moderator);
+          });
+          setModerators(loadedMods);
+          try {
+            localStorage.setItem('dodo_firestore_cache_moderators', JSON.stringify(loadedMods));
+          } catch (e) {
+            console.error('Error saving moderators cache:', e);
+          }
+        }
+      },
+      (err) => console.error('Firestore moderators listener error:', err)
+    );
+
     return () => {
       unsubProducts();
       unsubOrders();
       unsubCustomers();
       unsubSettings();
+      unsubModerators();
     };
   }, []);
 
@@ -643,6 +732,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Moderators CRUD
+  const addModerator = async (modData: Omit<Moderator, 'id' | 'createdAt'>) => {
+    const newId = `mod-${Date.now()}`;
+    const newMod: Moderator = {
+      ...modData,
+      id: newId,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      await setDoc(doc(db, 'moderators', newId), newMod);
+      showToast(lang === 'ar' ? 'تمت إضافة المشرف الجديد بنجاح' : 'New moderator added successfully');
+    } catch (e) {
+      console.error('Error adding moderator:', e);
+    }
+  };
+
+  const updateModerator = async (id: string, updated: Partial<Moderator>) => {
+    const target = moderators.find((m) => m.id === id);
+    if (!target) return;
+    const full = { ...target, ...updated };
+    try {
+      await setDoc(doc(db, 'moderators', id), full, { merge: true });
+      showToast(lang === 'ar' ? 'تم تحديث صلاحيات المشرف بنجاح' : 'Moderator permissions updated successfully');
+    } catch (e) {
+      console.error('Error updating moderator:', e);
+    }
+  };
+
+  const deleteModerator = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'moderators', id));
+      showToast(lang === 'ar' ? 'تم حذف المشرف بنجاح' : 'Moderator deleted successfully');
+    } catch (e) {
+      console.error('Error deleting moderator:', e);
+    }
+  };
+
   // Cart Logic
   const addToCart = (product: Product, selectedColor: ProductColor, selectedSize: string, quantity = 1, openCart = false) => {
     const cartItemId = `${product.id}-${selectedColor.hex}-${selectedSize}`;
@@ -746,6 +872,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         siteSettings,
         updateSiteSettings,
+
+        moderators,
+        addModerator,
+        updateModerator,
+        deleteModerator,
+        currentModerator,
+        setCurrentModerator,
 
         cart,
         addToCart,

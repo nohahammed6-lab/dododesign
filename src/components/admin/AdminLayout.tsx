@@ -6,11 +6,12 @@ import { OrdersManagement } from './OrdersManagement';
 import { CustomerManagement } from './CustomerManagement';
 import { ReviewsManagement } from './ReviewsManagement';
 import { SiteSettingsManagement } from './SiteSettingsManagement';
-import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code, Lock, Key, LogOut, Sliders } from 'lucide-react';
-import { AdminTab } from '../../types';
+import { ModeratorsManagement } from './ModeratorsManagement';
+import { LayoutDashboard, Package, ShoppingBag, Users, MessageSquare, Store, ArrowLeft, ArrowRight, ShieldCheck, Globe, Copy, Check, Link2, Sparkles, Download, Code, Lock, Key, LogOut, Sliders, Shield } from 'lucide-react';
+import { AdminTab, AdminPermissions } from '../../types';
 
 export const AdminLayout: React.FC = () => {
-  const { lang, setLang, adminTab, setAdminTab, setViewMode, showToast, products, orders, customers } = useApp();
+  const { lang, setLang, adminTab, setAdminTab, setViewMode, showToast, products, orders, customers, moderators, currentModerator, setCurrentModerator } = useApp();
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [copiedData, setCopiedData] = useState(false);
 
@@ -23,16 +24,47 @@ export const AdminLayout: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput.trim() === 'dododesign123') {
+    const cleanPin = passwordInput.trim();
+
+    // Check Master Password first
+    if (cleanPin === 'dododesign123') {
       sessionStorage.setItem('dodo_admin_auth', 'true');
       setIsAuthenticated(true);
+      setCurrentModerator(null); // Owner full access
       setAuthError('');
-      showToast(lang === 'ar' ? 'تم تسجيل الدخول بنجاح إلى لوحة التحكم!' : 'Authenticated successfully!');
+      showToast(lang === 'ar' ? 'تم تسجيل الدخول كمالك رئيسي للوحة التحكم!' : 'Authenticated as Master Owner!');
+      return;
+    }
+
+    // Check Moderator PIN Code
+    const matchedMod = moderators.find((m) => m.pinCode === cleanPin);
+    if (matchedMod) {
+      if (matchedMod.isLocked) {
+        setAuthError(lang === 'ar' ? 'هذا الحساب معطل حالياً من قِبل الإدارة.' : 'This account is locked.');
+        return;
+      }
+      sessionStorage.setItem('dodo_admin_auth', 'true');
+      setIsAuthenticated(true);
+      setCurrentModerator(matchedMod);
+      setAuthError('');
+
+      // Redirect to first permitted tab
+      if (matchedMod.permissions) {
+        if (matchedMod.permissions.overview) setAdminTab('overview');
+        else if (matchedMod.permissions.orders) setAdminTab('orders');
+        else if (matchedMod.permissions.products) setAdminTab('products');
+        else if (matchedMod.permissions.reviews) setAdminTab('reviews');
+        else if (matchedMod.permissions.customers) setAdminTab('customers');
+        else if (matchedMod.permissions.settings) setAdminTab('settings');
+        else if (matchedMod.permissions.moderators) setAdminTab('moderators');
+      }
+
+      showToast(lang === 'ar' ? `مرحباً بك ${matchedMod.name}!` : `Welcome ${matchedMod.name}!`);
     } else {
       setAuthError(
         lang === 'ar'
-          ? 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.'
-          : 'Incorrect password, please try again.'
+          ? 'رمز الدخول أو كلمة المرور غير صحيحة.'
+          : 'Incorrect password or PIN code.'
       );
     }
   };
@@ -40,6 +72,7 @@ export const AdminLayout: React.FC = () => {
   const handleLogout = () => {
     sessionStorage.removeItem('dodo_admin_auth');
     setIsAuthenticated(false);
+    setCurrentModerator(null);
     setPasswordInput('');
     showToast(lang === 'ar' ? 'تم قفل لوحة التحكم بنجاح' : 'Admin panel locked');
   };
@@ -118,44 +151,63 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
     setTimeout(() => setCopiedData(false), 3000);
   };
 
-  const tabs: { key: AdminTab; labelAr: string; labelEn: string; icon: React.ReactNode }[] = [
+  const allTabs: { key: AdminTab; labelAr: string; labelEn: string; icon: React.ReactNode; permKey?: keyof AdminPermissions }[] = [
     {
       key: 'overview',
       labelAr: 'نظرة عامة والتحليلات',
       labelEn: 'Dashboard Overview',
-      icon: <LayoutDashboard className="w-4 h-4" />
+      icon: <LayoutDashboard className="w-4 h-4" />,
+      permKey: 'overview',
     },
     {
       key: 'products',
       labelAr: 'إدارة الكتالوج والمخزون',
       labelEn: 'Products Catalog',
-      icon: <Package className="w-4 h-4" />
+      icon: <Package className="w-4 h-4" />,
+      permKey: 'products',
     },
     {
       key: 'reviews',
       labelAr: 'إدارة التقييمات وآراء العملاء',
       labelEn: 'Reviews Management',
-      icon: <MessageSquare className="w-4 h-4" />
+      icon: <MessageSquare className="w-4 h-4" />,
+      permKey: 'reviews',
     },
     {
       key: 'orders',
-      labelAr: 'إدارة الطلبات والشحن',
-      labelEn: 'Orders & Shipping',
-      icon: <ShoppingBag className="w-4 h-4" />
+      labelAr: 'إدارة الحجوزات والطلبات',
+      labelEn: 'Orders & Bookings',
+      icon: <ShoppingBag className="w-4 h-4" />,
+      permKey: 'orders',
     },
     {
       key: 'customers',
       labelAr: 'كبار العملاء VIP',
       labelEn: 'VIP Member Directory',
-      icon: <Users className="w-4 h-4" />
+      icon: <Users className="w-4 h-4" />,
+      permKey: 'customers',
     },
     {
       key: 'settings',
       labelAr: 'إعدادات أرقام المساعدة والتواصل',
       labelEn: 'Store Contact Settings',
-      icon: <Sliders className="w-4 h-4" />
+      icon: <Sliders className="w-4 h-4" />,
+      permKey: 'settings',
+    },
+    {
+      key: 'moderators',
+      labelAr: 'إدارة المشرفين والصلاحيات',
+      labelEn: 'Moderators & Permissions',
+      icon: <ShieldCheck className="w-4 h-4" />,
+      permKey: 'moderators',
     },
   ];
+
+  const visibleTabs = allTabs.filter((t) => {
+    if (!currentModerator) return true; // Owner has full access
+    if (!t.permKey) return true;
+    return !!currentModerator.permissions?.[t.permKey];
+  });
 
   return (
     <div className="min-h-screen bg-[#08080a] text-[#f2efe9] flex flex-col">
@@ -184,6 +236,12 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto justify-end">
+            {/* Active User Name Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#18161e] border border-[#2e2820] rounded-lg text-xs font-semibold text-[#e8ded0]">
+              <Shield className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>{currentModerator ? currentModerator.name : (lang === 'ar' ? 'المالك الرئيسي (Admin)' : 'Master Owner')}</span>
+            </div>
+
             {/* Export Code for GitHub button */}
             <button
               onClick={() => setIsDataModalOpen(true)}
@@ -231,7 +289,7 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
         {/* Navigation Sidebar */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="bg-[#111015] border border-[#26221c] rounded-xl p-3 space-y-1 sticky top-24 shadow-xl">
-            {tabs.map((tab) => {
+            {visibleTabs.map((tab) => {
               const isActive = adminTab === tab.key;
               return (
                 <button
@@ -259,6 +317,7 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
           {adminTab === 'orders' && <OrdersManagement />}
           {adminTab === 'customers' && <CustomerManagement />}
           {adminTab === 'settings' && <SiteSettingsManagement />}
+          {adminTab === 'moderators' && <ModeratorsManagement />}
         </main>
 
       </div>

@@ -64,7 +64,8 @@ export const CartDrawer: React.FC = () => {
             {cart.length > 0 ? (
               cart.map((item) => {
                 const title = lang === 'ar' ? item.product.titleAr : item.product.titleEn;
-                const colorName = lang === 'ar' ? item.selectedColor.nameAr : item.selectedColor.nameEn;
+                const colorObj = item.selectedColor || { nameAr: 'الأسود الملكي', nameEn: 'Royal Black', hex: '#0a0a0a' };
+                const colorName = lang === 'ar' ? colorObj.nameAr : colorObj.nameEn;
                 return (
                   <div
                     key={item.id}

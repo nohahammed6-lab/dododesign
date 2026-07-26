@@ -57,21 +57,25 @@ export interface CartItem {
 
 export type OrderStatus = 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
+export interface OrderItem {
+  productId: string;
+  productTitleAr: string;
+  productTitleEn: string;
+  color?: string;
+  selectedColor?: ProductColor;
+  size: string;
+  quantity: number;
+  price: number;
+  image?: string;
+}
+
 export interface Order {
   id: string;
   customerName: string;
   customerPhone: string;
   customerCity: string;
   customerEmail: string;
-  items: {
-    productId: string;
-    productTitleAr: string;
-    productTitleEn: string;
-    color: string;
-    size: string;
-    quantity: number;
-    price: number;
-  }[];
+  items: OrderItem[];
   totalAmount: number;
   currency: Currency;
   status: OrderStatus;
@@ -93,7 +97,28 @@ export interface Customer {
 }
 
 export type ViewMode = 'store' | 'product_detail' | 'admin';
-export type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'reviews' | 'settings';
+export type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'reviews' | 'settings' | 'moderators';
+
+export interface AdminPermissions {
+  overview: boolean;
+  products: boolean;
+  orders: boolean;
+  customers: boolean;
+  reviews: boolean;
+  settings: boolean;
+  moderators: boolean;
+}
+
+export interface Moderator {
+  id: string;
+  name: string;
+  email: string;
+  pinCode: string;
+  role: 'owner' | 'moderator';
+  permissions: AdminPermissions;
+  createdAt: string;
+  isLocked?: boolean;
+}
 
 export interface SiteSettings {
   phone: string;

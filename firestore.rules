@@ -13,5 +13,8 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read, write: if true;
     }
+    match /moderators/{moderatorId} {
+      allow read, write: if true;
+    }
   }
 }

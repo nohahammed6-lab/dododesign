@@ -36,10 +36,12 @@ export const CheckoutModal: React.FC = () => {
       productId: item.product.id,
       productTitleAr: item.product.titleAr,
       productTitleEn: item.product.titleEn,
-      color: item.selectedColor.nameAr,
+      color: item.selectedColor?.nameAr || '',
+      selectedColor: item.selectedColor,
       size: item.selectedSize,
       quantity: item.quantity,
       price: item.product.price,
+      image: item.product.images?.[0] || '',
     }));
 
     addOrder({

@@ -15,7 +15,7 @@ interface ColorSwatchProps {
 }
 
 export const ColorSwatch: React.FC<ColorSwatchProps> = ({
-  color,
+  color = { nameAr: 'أسود', nameEn: 'Black', hex: '#000000' },
   isSelected = false,
   onClick,
   size = 'md',
@@ -24,8 +24,13 @@ export const ColorSwatch: React.FC<ColorSwatchProps> = ({
   showTitle = true,
   lang = 'ar',
 }) => {
-  const { style, isMultiColor } = getSwatchStyle(color.hex, color.nameAr, color.nameEn);
-  const colorName = lang === 'ar' ? color.nameAr : color.nameEn;
+  const safeColor = color || { nameAr: 'أسود', nameEn: 'Black', hex: '#000000' };
+  const hex = safeColor.hex || '#000000';
+  const nameAr = safeColor.nameAr || 'أسود';
+  const nameEn = safeColor.nameEn || 'Black';
+
+  const { style, isMultiColor } = getSwatchStyle(hex, nameAr, nameEn);
+  const colorName = lang === 'ar' ? nameAr : nameEn;
 
   const bgStr = String(style.backgroundColor || style.background || '').toLowerCase();
   const isLightBg =
