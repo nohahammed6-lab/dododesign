@@ -185,31 +185,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const cached = localStorage.getItem('dodo_firestore_cache_products');
-      if (cached) return JSON.parse(cached);
+      if (cached !== null) return JSON.parse(cached);
     } catch (e) {
       console.error(e);
     }
-    return [];
+    return INITIAL_PRODUCTS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
       const cached = localStorage.getItem('dodo_firestore_cache_orders');
-      if (cached) return JSON.parse(cached);
+      if (cached !== null) return JSON.parse(cached);
     } catch (e) {
       console.error(e);
     }
-    return [];
+    return INITIAL_ORDERS;
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
     try {
       const cached = localStorage.getItem('dodo_firestore_cache_customers');
-      if (cached) return JSON.parse(cached);
+      if (cached !== null) return JSON.parse(cached);
     } catch (e) {
       console.error(e);
     }
-    return [];
+    return INITIAL_CUSTOMERS;
   });
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -234,12 +234,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 await setDoc(doc(db, 'products', p.id), p);
               }
             } else {
-              setProducts([]);
-              localStorage.setItem('dodo_firestore_cache_products', JSON.stringify([]));
+              const stateData = stateSnap.data();
+              if (stateData?.isCleared) {
+                setProducts([]);
+                localStorage.setItem('dodo_firestore_cache_products', JSON.stringify([]));
+              } else {
+                setProducts(INITIAL_PRODUCTS);
+              }
             }
           } catch (e) {
             console.error('Error checking store state:', e);
-            setProducts([]);
+            setProducts(INITIAL_PRODUCTS);
           }
         } else {
           const loadedProducts: Product[] = [];
