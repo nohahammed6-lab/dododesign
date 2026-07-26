@@ -11,7 +11,6 @@ import { AdminTab } from '../../types';
 
 export const AdminLayout: React.FC = () => {
   const { lang, setLang, adminTab, setAdminTab, setViewMode, showToast, products, orders, customers } = useApp();
-  const [isCopied, setIsCopied] = useState(false);
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [copiedData, setCopiedData] = useState(false);
 
@@ -107,17 +106,6 @@ export const AdminLayout: React.FC = () => {
     );
   }
 
-  const adminUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}${window.location.pathname}#admin`
-    : 'https://ais-dev-ndpugu67tolc7usxgoxvlq-634145787652.europe-west2.run.app/#admin';
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(adminUrl);
-    setIsCopied(true);
-    showToast(lang === 'ar' ? 'تم نسخ رابط لوحة التحكم بنجاح!' : 'Admin URL copied to clipboard!');
-    setTimeout(() => setIsCopied(false), 3000);
-  };
-
   const handleCopyExportCode = () => {
     const code = `// Paste this updated data into src/data/mockData.ts to publish changes permanently to Vercel
 export const INITIAL_PRODUCTS = ${JSON.stringify(products, null, 2)};
@@ -196,22 +184,6 @@ export const INITIAL_CUSTOMERS = ${JSON.stringify(customers, null, 2)};
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto justify-end">
-            {/* Direct Link Banner */}
-            <div className="flex items-center gap-2 bg-[#16141c] border border-[#332b1f] px-3 py-1.5 rounded-lg text-xs">
-              <Link2 className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span className="text-[#a89b88] hidden sm:inline font-mono text-[11px] max-w-[200px] truncate">
-                {adminUrl}
-              </span>
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-1 px-2 py-1 bg-[#231f28] hover:bg-[#d4af37] hover:text-black text-[#d4af37] rounded transition text-[11px] font-semibold cursor-pointer"
-                title="Copy Link"
-              >
-                {isCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{isCopied ? (lang === 'ar' ? 'تم النسخ!' : 'Copied!') : (lang === 'ar' ? 'نسخ الرابط' : 'Copy Link')}</span>
-              </button>
-            </div>
-
             {/* Export Code for GitHub button */}
             <button
               onClick={() => setIsDataModalOpen(true)}
