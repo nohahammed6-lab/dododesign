@@ -104,9 +104,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [adminTab, setAdminTab] = useState<AdminTab>('overview');
   const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-1');
 
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('dodo_firestore_cache_products');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [orders, setOrders] = useState<Order[]>(() => {
+    try {
+      const cached = localStorage.getItem('dodo_firestore_cache_orders');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    try {
+      const cached = localStorage.getItem('dodo_firestore_cache_customers');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -131,6 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
             } else {
               setProducts([]);
+              localStorage.setItem('dodo_firestore_cache_products', JSON.stringify([]));
             }
           } catch (e) {
             console.error('Error checking store state:', e);
@@ -142,6 +169,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             loadedProducts.push(docSnap.data() as Product);
           });
           setProducts(loadedProducts);
+          try {
+            localStorage.setItem('dodo_firestore_cache_products', JSON.stringify(loadedProducts));
+          } catch (e) {
+            console.error('Error saving products cache:', e);
+          }
         }
       },
       (err) => console.error('Firestore products listener error:', err)
@@ -160,6 +192,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
             } else {
               setOrders([]);
+              localStorage.setItem('dodo_firestore_cache_orders', JSON.stringify([]));
             }
           } catch (e) {
             console.error('Error checking store state for orders:', e);
@@ -172,6 +205,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
           loadedOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setOrders(loadedOrders);
+          try {
+            localStorage.setItem('dodo_firestore_cache_orders', JSON.stringify(loadedOrders));
+          } catch (e) {
+            console.error('Error saving orders cache:', e);
+          }
         }
       },
       (err) => console.error('Firestore orders listener error:', err)
@@ -190,6 +228,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
             } else {
               setCustomers([]);
+              localStorage.setItem('dodo_firestore_cache_customers', JSON.stringify([]));
             }
           } catch (e) {
             console.error('Error checking store state for customers:', e);
@@ -201,6 +240,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             loadedCustomers.push(docSnap.data() as Customer);
           });
           setCustomers(loadedCustomers);
+          try {
+            localStorage.setItem('dodo_firestore_cache_customers', JSON.stringify(loadedCustomers));
+          } catch (e) {
+            console.error('Error saving customers cache:', e);
+          }
         }
       },
       (err) => console.error('Firestore customers listener error:', err)
